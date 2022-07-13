@@ -6,7 +6,7 @@ import logging
 from schedule import every, repeat, run_pending
 import time
 
-
+# Add the website URL here
 url = ''
 
 FORMAT = '%(asctime)s, %(levelname)s: (%(Response Code)s, %(URL)s) -> %(message)s'
