@@ -14,11 +14,11 @@ logging.basicConfig(filename='main.log', filemode='w', level=logging.INFO, forma
 
 already_queried_properties = []
 
-def get_response(url):
+def get_response(url: str):
     res = requests.request('GET', url)
     if res.status_code == 200:
         logging.info('Successful request', extra={'Response Code': str(res.status_code), 'URL': str(url)})
-        return res.text
+        return (res.text, res.status_code)
     elif res.status_code in (400, 404,):
         logging.error('Error in URL', extra={'Response Code': str(res.status_code), 'URL': str(url)})
     else:
@@ -27,19 +27,33 @@ def get_response(url):
 
 
 @repeat(every(10).minutes, url)
-def check_new_listings(url):
+def check_new_listings(url: str):
+    """Positive approach to finding new listings. If any errors, it just logs and does nothing."""
     res_text = get_response(url)
     if res_text is not None:
+        properties = get_all_properties(res_text, url)
+        if properties is not None:
+            for property in properties:
+                property_name = str(property.find("h4").contents[0]).strip()
+                property_url = str(property.find("div").parent["data-url"]).strip()
+                if property_name not in already_queried_properties:
+                    already_queried_properties.append(property_name)
+                    send_new_property_email(property_name, property_url)
+
+def get_all_properties(res_text: str, url: str):
+    try:
         soup = BeautifulSoup(res_text, 'html.parser')
         properties = soup.find_all("div", class_="regi-item d-flex flex-wrap")
-        for property in properties:
-            property_name = str(property.find("h4").contents[0]).strip()
-            property_url = str(property.find("div").parent["data-url"]).strip()
-            if property_name not in already_queried_properties:
-                already_queried_properties.append(property_name)
-                send_new_property_email(property_name, property_url)
+        logging.info('Found property listings', extra={'Response Code': '200', 'URL': str(url)})
+        return properties
+    except:
+        logging.error('There might be a change in the HTML structure', extra={'Response Code': '406', 'URL': 'None'})
+        return None
 
-def send_new_property_email():
+def send_new_property_email(property_name, property_url):
+    # The variables property_name and property_url contains new 
+    # property listings that you should pass to the email template
+    # Your code goes below here
     pass
 
 if __name__ == "__main__":
